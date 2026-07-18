@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free-Text Account Onboarding as a Latent Attack Surface in Enterprise PAM</title>
+<style>
+  :root{
+    --paper:#f4f1e8; --panel:#fbf9f2; --panel2:#f0ece0;
+    --ink:#241f18; --ink2:#3a332a; --muted:#6d6559; --faint:#8f8776;
+    --rule:#ddd6c6; --rule2:#cfc7b3;
+    --accent:#6e2b2b;      /* oxblood */
+    --accent2:#8a5a2b;     /* sepia/ochre */
+    --slate:#42505c;       /* muted academic slate */
+    --danger:#8c2f2f; --amber:#9c6a1a; --ok:#3a6b4f;
+    --serif:"Iowan Old Style","Palatino Linotype","Palatino","Book Antiqua","Georgia",serif;
+    --sans:"Inter","Helvetica Neue",Arial,sans-serif;
+    --maxw:820px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--serif); font-size:18.5px; line-height:1.66;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 30px;}
+
+  /* Masthead — centered working-paper style */
+  header.mast{text-align:center; margin-top:56px; padding-bottom:26px; border-bottom:1px solid var(--rule2);}
+  .eyebrow{font-family:var(--serif); font-variant:small-caps; font-size:15px; letter-spacing:.22em; color:var(--accent); }
+  h1.title{font-family:var(--serif); font-weight:600; font-size:33px; line-height:1.22; margin:16px auto 12px; max-width:720px; color:var(--ink);}
+  .subtitle{font-style:italic; font-size:19.5px; color:var(--muted); margin:0 auto 20px; max-width:640px;}
+  .byline{font-family:var(--serif); font-variant:small-caps; letter-spacing:.06em; font-size:15px; color:var(--muted); display:flex; justify-content:center; flex-wrap:wrap; gap:4px 26px; padding-top:14px; border-top:1px solid var(--rule);}
+  .byline b{color:var(--ink2); font-weight:600;}
+  .ornament{color:var(--accent2); letter-spacing:.5em; font-size:15px; margin:12px 0 0;}
+
+  /* Abstract */
+  .abstract{margin:36px auto 12px; max-width:700px;}
+  .abstract h2{font-family:var(--serif); font-variant:small-caps; font-size:17px; letter-spacing:.14em; color:var(--accent); text-align:center; margin:0 0 12px;}
+  .abstract p{margin:0; font-size:16.5px; line-height:1.62; text-align:justify; color:var(--ink2); border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); padding:16px 4px;}
+
+  /* Sections */
+  section{margin:44px 0;}
+  h2.sec{font-family:var(--serif); font-variant:small-caps; font-size:23px; letter-spacing:.05em; color:var(--ink); font-weight:600; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--rule); }
+  h2.sec .secnum{color:var(--accent); font-weight:600; margin-right:.55em; font-variant:normal;}
+  h3.sub{font-family:var(--serif); font-style:italic; font-size:20px; color:var(--accent2); font-weight:600; margin:28px 0 6px;}
+  p{text-align:justify; margin:0 0 16px;}
+  .lead:first-letter{initial-letter:2; -webkit-initial-letter:2; font-weight:600; color:var(--accent); margin-right:8px;}
+  strong{color:#1a1611; font-weight:700;}
+
+  /* Lists */
+  ul.clean, ol.clean{margin:0 0 16px; padding-left:0; list-style:none;}
+  ul.clean li, ol.clean li{position:relative; padding-left:28px; margin-bottom:11px; text-align:justify;}
+  ul.clean li::before{content:"—"; position:absolute; left:2px; top:0; color:var(--accent2);}
+  ol.clean{counter-reset:it;}
+  ol.clean li{counter-increment:it; padding-left:34px;}
+  ol.clean li::before{content:counter(it,upper-roman)"."; position:absolute; left:0; top:0; font-family:var(--serif); font-size:16px; font-weight:700; color:var(--accent);}
+
+  /* Figures */
+  figure{margin:34px 0; text-align:center;}
+  figure svg{max-width:100%; height:auto;}
+  figcaption{font-family:var(--serif); font-size:15.5px; font-style:italic; color:var(--muted); margin-top:14px; line-height:1.55; text-align:left;}
+  figcaption b{color:var(--accent); font-style:normal; font-variant:small-caps; letter-spacing:.03em;}
+  .figframe{background:var(--panel); border:1px solid var(--rule2); padding:24px 20px 10px; box-shadow:0 1px 0 rgba(110,43,43,.05);}
+
+  /* Table */
+  table{width:100%; border-collapse:collapse; margin:22px 0; font-family:var(--serif); font-size:16px;}
+  caption{caption-side:top; font-family:var(--serif); font-style:italic; font-size:15.5px; color:var(--muted); text-align:left; margin-bottom:10px;}
+  caption b{color:var(--accent); font-style:normal; font-variant:small-caps;}
+  thead tr{border-top:2px solid var(--ink); border-bottom:1px solid var(--ink);}
+  th{text-align:left; padding:9px 12px; font-weight:700; font-size:14.5px; font-variant:small-caps; letter-spacing:.04em; color:var(--ink);}
+  td{padding:9px 12px; border-bottom:1px solid var(--rule); vertical-align:top; line-height:1.45;}
+  tbody tr:last-child{border-bottom:2px solid var(--ink);}
+  .tag{display:inline-block; font-size:12px; font-weight:700; padding:1px 8px; border-radius:2px; font-family:var(--sans);}
+  .t-low{background:#efd9d5; color:var(--danger);} .t-mid{background:#eee1c3; color:var(--amber);} .t-vlow{background:#e4c9c3; color:#5e1d1d;}
+
+  /* Callout */
+  .callout{background:var(--panel2); border-left:3px solid var(--accent); padding:16px 22px; margin:24px 0; font-size:16.5px; font-style:italic; color:var(--ink2);}
+  .callout .k{font-family:var(--serif); font-style:normal; font-variant:small-caps; font-size:14px; letter-spacing:.12em; color:var(--accent); font-weight:700; display:block; margin-bottom:6px;}
+
+  /* References */
+  ol.refs{font-family:var(--serif); font-size:16px; color:var(--ink2); padding-left:24px; line-height:1.5;}
+  ol.refs li{margin-bottom:12px;}
+  ol.refs a{color:var(--accent); word-break:break-word;}
+
+  footer{border-top:1px solid var(--rule2); margin:52px 0 60px; padding-top:18px; font-family:var(--serif); font-size:15px; color:var(--muted); text-align:center;}
+  footer .note{font-style:italic;}
+  footer .orn{color:var(--accent2); letter-spacing:.5em; display:block; margin-bottom:10px;}
+
+  #bar{position:fixed; top:0; left:0; height:3px; background:var(--accent); width:0; z-index:99; opacity:.85;}
+
+  @media (max-width:640px){
+    body{font-size:17px;} h1.title{font-size:26px;} .wrap{padding:0 20px;}
+  }
+  @media print{
+    body{background:#fff;} #bar{display:none;} .figframe{break-inside:avoid; box-shadow:none;}
+    section{break-inside:avoid-page;}
+  }
+  svg text{font-family:var(--serif);}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<div class="wrap">
+
+  <header class="mast">
+    <div class="eyebrow">A Working Paper</div>
+    <h1 class="title">Free-Text Account Onboarding as a Latent Attack Surface in Enterprise Privileged Access Management</h1>
+    <p class="subtitle">A separation-of-duties failure and its amplification by automation and AI agents</p>
+    <div class="byline">
+      <span><b>Author</b> A.Banerjee </span>
+      <span><b>Version</b> 1.0</span>
+      <span><b>July 2026</b></span>
+      <span><b>For discussion</b></span>
+    </div>
+    <div class="ornament">&sect; &sect; &sect;</div>
+  </header>
+
+  <div class="abstract">
+    <h2>Abstract</h2>
+    <p>Enterprise Privileged Access Management (PAM) platforms are widely trusted as the authoritative control point for privileged credentials. This paper examines a control weakness that is not a software defect in the conventional sense, but an emergent property of how such platforms are commonly deployed: the combination of broadly granted write permissions, unvalidated free-text account onboarding, and an immediate, irreversible credential-rotation action against live source systems. We show that this combination transforms a routine administrative capability into a latent attack surface capable of credential takeover and denial of service. We argue that the risk is currently under-recognised because its consequences have so far manifested mainly as isolated, seemingly accidental outages. We then demonstrate how two foreseeable developments &mdash; the delegation of PAM operations to AI agents, and the scripting of bulk onboarding and rotation via API &mdash; sharply raise both the probability and the blast radius of harm. We conclude with a layered set of preventive controls grounded in least privilege, input validation, and reversibility.</p>
+  </div>
+
+  <!-- I -->
+  <section id="intro">
+    <h2 class="sec"><span class="secnum">I.</span>Introduction</h2>
+    <p class="lead">Privileged Access Management occupies a paradoxical position in enterprise security. It is deployed precisely because privileged credentials are dangerous, yet the platform that manages them concentrates the power to read, rotate, and revoke those credentials into a single console. The security of the enterprise therefore depends not only on the platform&rsquo;s cryptographic and vaulting guarantees, but on the authorisation model that governs who may perform which operations, and on whether those operations are validated and reversible.</p>
+    <p>This paper describes a weakness observed in a real, large-scale deployment of a self-hosted PAM platform at a global financial institution. The platform is integrated with Windows Active Directory, relational databases, LDAP directories, and Unix hosts, and manages service accounts stored in access-controlled vault containers (&ldquo;SAFEs&rdquo;). The weakness does not arise from any single misconfiguration but from the interaction of three design and operational choices, each defensible in isolation. Our central claim is that this class of weakness is being systematically underestimated, and that automation and AI-mediated operation will convert a currently tolerable risk into a material one.</p>
+  </section>
+
+  <!-- II -->
+  <section id="background">
+    <h2 class="sec"><span class="secnum">II.</span>Background: The Onboarding and Rotation Workflow</h2>
+    <p>The institution governs privileged access through a multi-stage request workflow. Business applications and their instances are first registered in an IT Service Management configuration management database (CMDB), where each instance is typed as Production or Non-Production. Vault containers (SAFEs) are then requested and suffixed to denote the operating stream &mdash; Run-the-Bank (RTB) or Change-the-Bank (CTB). Membership of a SAFE is granted by a designated authoriser after review of the requester&rsquo;s job code. Finally, privileged accounts are requested and, once created, their credentials are automatically deposited into the corresponding SAFE.</p>
+
+    <figure>
+      <div class="figframe">
+      <svg viewBox="0 0 780 250" role="img" aria-label="Three-stage privileged access request workflow">
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#6e2b2b"/></marker>
+        </defs>
+        <g font-size="13">
+          <rect x="14" y="60" width="228" height="120" rx="3" fill="#f0ece0" stroke="#cfc7b3"/>
+          <rect x="276" y="60" width="228" height="120" rx="3" fill="#f0ece0" stroke="#cfc7b3"/>
+          <rect x="538" y="60" width="228" height="120" rx="3" fill="#f0ece0" stroke="#cfc7b3"/>
+
+          <text x="28" y="52" font-size="12.5" font-weight="700" fill="#42505c">STAGE I · CMDB</text>
+          <text x="290" y="52" font-size="12.5" font-weight="700" fill="#42505c">STAGE II · SAFE</text>
+          <text x="552" y="52" font-size="12.5" font-weight="700" fill="#42505c">STAGE III · ACCOUNT</text>
+
+          <text x="30" y="90" font-weight="600" fill="#241f18">Register Business App</text>
+          <text x="30" y="112" fill="#6d6559" font-size="12">Instances typed</text>
+          <text x="30" y="130" fill="#6d6559" font-size="12">Production / Non-Prod</text>
+          <text x="30" y="158" font-size="11.5" fill="#8c2f2f">Prod → RTB only</text>
+
+          <text x="292" y="90" font-weight="600" fill="#241f18">Request &amp; grant SAFE</text>
+          <text x="292" y="112" fill="#6d6559" font-size="12">Suffix -RTB / -CTB</text>
+          <text x="292" y="130" fill="#6d6559" font-size="12">Authoriser reviews</text>
+          <text x="292" y="158" font-size="11.5" fill="#8c2f2f">Job-code check</text>
+
+          <text x="554" y="90" font-weight="600" fill="#241f18">Request priv. account</text>
+          <text x="554" y="112" fill="#6d6559" font-size="12">Credentials auto-</text>
+          <text x="554" y="130" fill="#6d6559" font-size="12">vaulted into SAFE</text>
+          <text x="554" y="158" font-size="11.5" fill="#8c2f2f">Prod request → RTB only</text>
+        </g>
+        <line x1="242" y1="120" x2="274" y2="120" stroke="#6e2b2b" stroke-width="2" marker-end="url(#ar)"/>
+        <line x1="504" y1="120" x2="536" y2="120" stroke="#6e2b2b" stroke-width="2" marker-end="url(#ar)"/>
+        <text x="390" y="212" text-anchor="middle" font-size="12.5" fill="#6d6559" font-style="italic">RTB / CTB control gates (in red) carry from CMDB through to the account request</text>
+      </svg>
+      </div>
+      <figcaption><b>Figure 1.</b> The governed request workflow. Each stage enforces the Run-the-Bank / Change-the-Bank distinction, yet none of these gates governs the <em>ad hoc</em> onboarding path examined in this paper.</figcaption>
+    </figure>
+
+    <p>Two platform behaviours are relevant. First, the platform verifies stored passwords by directly polling the source system &mdash; Active Directory, the database server, or the LDAP directory. Second, a Central Policy Manager (CPM) performs credential lifecycle operations. Policies determine whether a password is changed immediately upon onboarding, and expose manual <strong>Verify</strong>, <strong>Change</strong>, and <strong>Reconcile</strong> actions to SAFE members. The <strong>Change</strong> action rotates the credential in the source system itself &mdash; not merely in the vault.</p>
+  </section>
+
+  <!-- III -->
+  <section id="threat">
+    <h2 class="sec"><span class="secnum">III.</span>Threat Model</h2>
+    <p>We consider three actor classes, all operating with legitimate, granted access rather than through any breach of the platform&rsquo;s perimeter:</p>
+    <ul class="clean">
+      <li><strong>The unaware insider</strong> &mdash; a SAFE member with write permission who performs a technically permitted action without understanding its downstream business consequences.</li>
+      <li><strong>The malicious insider</strong> &mdash; an authorised member who deliberately exploits the permitted action to disrupt or seize control of a credential they do not legitimately own.</li>
+      <li><strong>The delegated automaton</strong> &mdash; a script or AI agent acting on behalf of a human, executing onboarding and rotation at machine speed and scale, without independent judgement of business impact.</li>
+    </ul>
+    <p>Critically, none of these actors needs to defeat authentication, escalate privilege in the operating-system sense, or exploit a memory-safety bug. Every action described below is, from the platform&rsquo;s perspective, a correctly authorised operation. This is what makes the weakness both durable and easy to overlook: it is invisible to controls that look only for unauthorised access.</p>
+  </section>
+
+  <!-- IV -->
+  <section id="finding">
+    <h2 class="sec"><span class="secnum">IV.</span>Finding: Unvalidated, Irreversible Rotation Under Coarse Authorisation</h2>
+    <p>The finding is the conjunction of three properties, none individually a vulnerability, whose combination is:</p>
+    <ol class="clean">
+      <li><strong>Coarse-grained authorisation.</strong> Write membership &mdash; held by the majority of operational staff &mdash; bundles the right to <em>add</em> accounts with the right to <em>initiate CPM operations</em>. &ldquo;Ability to use the SAFE&rdquo; is conflated with &ldquo;ability to onboard and rotate any account that can be named.&rdquo;</li>
+      <li><strong>Unvalidated free-text onboarding.</strong> The Add Account form accepts the account name and target address as free text. The platform confirms only write membership; it does not verify that the requester owns, or is entitled to manage, the named account. Any valid name and address &mdash; readily discoverable from the CMDB &mdash; may be entered.</li>
+      <li><strong>Immediate, irreversible source-side action.</strong> Onboarding under a &ldquo;change on add&rdquo; policy, or clicking <strong>Change</strong>, rotates the real credential in the live source system at once. If the prior password was not captured, and consumers were not registered as managed dependencies, the change is unrecoverable and immediate.</li>
+    </ol>
+
+    <figure>
+      <div class="figframe">
+      <svg viewBox="0 0 760 300" role="img" aria-label="Three benign properties converge into a latent attack surface">
+        <defs>
+          <marker id="ar2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#8c2f2f"/></marker>
+        </defs>
+        <g>
+          <rect x="16" y="24" width="230" height="66" rx="3" fill="#f0ece0" stroke="#cfc7b3"/>
+          <text x="34" y="52" font-size="13.5" font-weight="700" fill="#42505c">Coarse authorisation</text>
+          <text x="34" y="72" font-size="11.5" fill="#6d6559">Write = add + rotate, held by most</text>
+
+          <rect x="16" y="117" width="230" height="66" rx="3" fill="#f0ece0" stroke="#cfc7b3"/>
+          <text x="34" y="145" font-size="13.5" font-weight="700" fill="#42505c">Unvalidated onboarding</text>
+          <text x="34" y="165" font-size="11.5" fill="#6d6559">Free-text name + address</text>
+
+          <rect x="16" y="210" width="230" height="66" rx="3" fill="#f0ece0" stroke="#cfc7b3"/>
+          <text x="34" y="238" font-size="13.5" font-weight="700" fill="#42505c">Irreversible action</text>
+          <text x="34" y="258" font-size="11.5" fill="#6d6559">Change rotates the live source</text>
+        </g>
+        <g>
+          <circle cx="430" cy="150" r="46" fill="#fbf9f2" stroke="#8c2f2f" stroke-width="2"/>
+          <text x="430" y="146" text-anchor="middle" font-size="20" font-weight="800" fill="#8c2f2f">AND</text>
+          <text x="430" y="167" text-anchor="middle" font-size="10.5" fill="#6d6559">conjunction</text>
+        </g>
+        <path d="M246 57 C 330 70, 350 120, 388 138" fill="none" stroke="#b8a88e" stroke-width="1.6"/>
+        <path d="M246 150 L 382 150" fill="none" stroke="#b8a88e" stroke-width="1.6"/>
+        <path d="M246 243 C 330 230, 350 180, 388 162" fill="none" stroke="#b8a88e" stroke-width="1.6"/>
+        <line x1="476" y1="150" x2="556" y2="150" stroke="#8c2f2f" stroke-width="2.4" marker-end="url(#ar2)"/>
+        <rect x="562" y="112" width="184" height="76" rx="3" fill="#efd9d5" stroke="#cba59d"/>
+        <text x="654" y="140" text-anchor="middle" font-size="13.5" font-weight="800" fill="#8c2f2f">Latent attack</text>
+        <text x="654" y="160" text-anchor="middle" font-size="13.5" font-weight="800" fill="#8c2f2f">surface</text>
+        <text x="654" y="178" text-anchor="middle" font-size="10.5" fill="#5e1d1d">takeover · denial of service</text>
+      </svg>
+      </div>
+      <figcaption><b>Figure 2.</b> Three individually defensible properties combine into a repeatable takeover and denial-of-service primitive. The defect lies in the <em>conjunction</em> &mdash; the authorisation and validation model &mdash; not in the rotation engine.</figcaption>
+    </figure>
+
+    <p>Taken together, these properties mean that any write-holder can direct the platform to seize or destroy a credential belonging to a system they do not own. The platform is not malfunctioning; it is faithfully executing an authorised instruction.</p>
+    <div class="callout"><span class="k">Reframing</span>This is best understood as a <strong>separation-of-duties and input-validation weakness</strong>, reframed from what operations teams typically record merely as &ldquo;an accidental password change that broke an application.&rdquo; The operational framing treats each incident as user error; the security framing recognises the same mechanism as a repeatable takeover and denial-of-service primitive.</div>
+  </section>
+
+  <!-- V -->
+  <section id="scenarios">
+    <h2 class="sec"><span class="secnum">V.</span>Exploit Scenarios</h2>
+
+    <h3 class="sub">V.1 &nbsp;Baseline: Accidental Rotation Breakage</h3>
+    <p>The most common manifestation today is inadvertent. A member onboards an account already in use by a running application &mdash; hardcoded into a configuration or consumed via API &mdash; and triggers a change. The application, still presenting the old credential, fails authentication. Because the consumer was never registered as a managed dependency, the platform neither knew of it nor updated it. The outage appears as an isolated operational mishap, and is filed as such. This framing is precisely why the systemic risk remains under-recognised.</p>
+
+    <h3 class="sub">V.2 &nbsp;Malicious Credential Takeover and Denial of Service</h3>
+    <p>The same mechanism, exercised deliberately, is an attack. An authorised but malicious member enumerates high-value service accounts from the CMDB, onboards one they do not legitimately manage, and rotates it. The legitimate owner is locked out; the new credential resides in a SAFE the attacker can access. Depending on the account&rsquo;s reach, this yields either a targeted denial of service against a business function or a foothold under an identity the attacker now controls &mdash; achieved entirely through permitted actions and therefore unlikely to trigger access-based alerting.</p>
+
+    <h3 class="sub">V.3 &nbsp;AI-Agent-Mediated Rotation <span style="font-style:normal;font-size:15px;color:var(--amber);">(emerging)</span></h3>
+    <p>As institutions delegate routine PAM operations to AI agents, a new and particularly hazardous path opens. Consider an agent authorised to perform credential operations, instructed in natural language by a human who does not understand the business consequences &mdash; for instance, &ldquo;rotate the password for this account.&rdquo; The agent, lacking situational awareness of which downstream systems depend on that credential, executes the change faithfully and immediately. The human&rsquo;s ignorance is amplified, not checked, by the agent&rsquo;s competence and speed. The absence of a validation and impact-assessment layer, tolerable when a human might pause to reason, becomes acute when the operator is a system optimised to comply.</p>
+
+    <h3 class="sub">V.4 &nbsp;Automated Iterative Onboard&ndash;Rotate&ndash;Delete Cascade <span style="font-style:normal;font-size:15px;color:var(--danger);">(gravest)</span></h3>
+    <p>The gravest scenario combines scale with concealment. A script or agent &mdash; whether maliciously authored or merely incorrectly programmed &mdash; iterates over every Windows account discoverable for a SAFE, onboards each, rotates its password, and then deletes the account object from the SAFE. Each step is individually authorised; the aggregate effect is systemic. Potentially hundreds of production credentials are simultaneously invalidated, and the record of the new credentials is removed along with the deleted objects. Recovery assumes operators will inspect a &ldquo;recently deleted&rdquo; area &mdash; an assumption that frequently fails, because staff are neither trained nor prompted to look there, retention windows may be short, and the deletions may not be correlated as a single event.</p>
+
+    <figure>
+      <div class="figframe">
+      <svg viewBox="0 0 760 250" role="img" aria-label="Iterative onboard rotate delete loop">
+        <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#8c2f2f"/></marker></defs>
+        <text x="380" y="26" text-anchor="middle" font-size="14" font-weight="700" font-style="italic" fill="#8c2f2f">for each account in SAFE:</text>
+        <g font-size="13">
+          <rect x="40" y="70" width="150" height="70" rx="3" fill="#efd9d5" stroke="#cba59d"/>
+          <text x="115" y="100" text-anchor="middle" font-weight="700" fill="#8c2f2f">1 · Onboard</text>
+          <text x="115" y="122" text-anchor="middle" font-size="11" fill="#5e1d1d">free-text add</text>
+
+          <rect x="305" y="70" width="150" height="70" rx="3" fill="#efd9d5" stroke="#cba59d"/>
+          <text x="380" y="100" text-anchor="middle" font-weight="700" fill="#8c2f2f">2 · Rotate</text>
+          <text x="380" y="122" text-anchor="middle" font-size="11" fill="#5e1d1d">breaks live source</text>
+
+          <rect x="570" y="70" width="150" height="70" rx="3" fill="#efd9d5" stroke="#cba59d"/>
+          <text x="645" y="100" text-anchor="middle" font-weight="700" fill="#8c2f2f">3 · Delete</text>
+          <text x="645" y="122" text-anchor="middle" font-size="11" fill="#5e1d1d">new secret lost</text>
+        </g>
+        <line x1="190" y1="105" x2="303" y2="105" stroke="#8c2f2f" stroke-width="2" marker-end="url(#ar3)"/>
+        <line x1="455" y1="105" x2="568" y2="105" stroke="#8c2f2f" stroke-width="2" marker-end="url(#ar3)"/>
+        <path d="M645 140 C 645 200, 115 200, 115 142" fill="none" stroke="#8c2f2f" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#ar3)"/>
+        <text x="380" y="196" text-anchor="middle" font-size="11.5" font-style="italic" fill="#8c2f2f">loop &mdash; mass credential invalidation with impaired recovery</text>
+      </svg>
+      </div>
+      <figcaption><b>Figure 3.</b> The onboard&ndash;rotate&ndash;delete cascade. A capability that is safe as a single manual action becomes catastrophic when iterated programmatically without rate limits, approval gates, or reversibility guarantees.</figcaption>
+    </figure>
+  </section>
+
+  <!-- VI -->
+  <section id="blast">
+    <h2 class="sec"><span class="secnum">VI.</span>Blast-Radius Analysis</h2>
+    <p>The impact of a single unvalidated rotation scales with the reach of the affected credential and the maturity of the recovery path. Table&nbsp;1 summarises the escalation; Figure&nbsp;4 positions each scenario by likelihood and impact.</p>
+
+    <table>
+      <caption><b>Table 1.</b> Escalation of the same underlying mechanism across four scenarios.</caption>
+      <thead><tr><th>Scenario</th><th>Trigger</th><th>Immediate impact</th><th>Recoverability</th></tr></thead>
+      <tbody>
+        <tr><td>Accidental breakage</td><td>Single manual Change</td><td>One application authentication failure</td><td><span class="tag t-mid">Moderate</span> reconcile if configured</td></tr>
+        <tr><td>Malicious takeover</td><td>Targeted onboard + Change</td><td>Owner locked out; identity seized</td><td><span class="tag t-low">Low</span> requires detection first</td></tr>
+        <tr><td>AI-agent rotation</td><td>Natural-language instruction</td><td>Unscoped change at machine speed</td><td><span class="tag t-low">Low</span> no impact pre-check</td></tr>
+        <tr><td>Iterative cascade</td><td>Scripted onboard&ndash;rotate&ndash;delete</td><td>Mass credential invalidation</td><td><span class="tag t-vlow">Very low</span> new secrets deleted</td></tr>
+      </tbody>
+    </table>
+
+    <figure>
+      <div class="figframe">
+      <svg viewBox="0 0 620 380" role="img" aria-label="Likelihood versus impact quadrant of the four scenarios">
+        <line x1="70" y1="30" x2="70" y2="320" stroke="#b8a88e" stroke-width="1.5"/>
+        <line x1="70" y1="320" x2="580" y2="320" stroke="#b8a88e" stroke-width="1.5"/>
+        <text x="325" y="358" text-anchor="middle" font-size="13.5" font-style="italic" fill="#6d6559">Likelihood / ease of occurrence &rarr;</text>
+        <text x="24" y="175" text-anchor="middle" font-size="13.5" font-style="italic" fill="#6d6559" transform="rotate(-90 24 175)">Business impact &amp; irrecoverability &rarr;</text>
+        <g stroke="#e7e0cf">
+          <line x1="325" y1="30" x2="325" y2="320"/><line x1="70" y1="175" x2="580" y2="175"/>
+        </g>
+        <g font-size="13">
+          <circle cx="470" cy="250" r="15" fill="#9c6a1a" opacity="0.85"/>
+          <text x="470" y="285" text-anchor="middle" fill="#241f18" font-weight="600">Accidental</text>
+          <text x="470" y="301" text-anchor="middle" fill="#6d6559" font-size="11.5">breakage</text>
+
+          <circle cx="300" cy="120" r="15" fill="#8c2f2f" opacity="0.85"/>
+          <text x="300" y="98" text-anchor="middle" fill="#241f18" font-weight="600">Malicious</text>
+          <text x="300" y="83" text-anchor="middle" fill="#6d6559" font-size="11.5">takeover</text>
+
+          <circle cx="410" cy="105" r="15" fill="#8c2f2f" opacity="0.62"/>
+          <text x="410" y="83" text-anchor="middle" fill="#241f18" font-weight="600">AI-agent</text>
+          <text x="410" y="68" text-anchor="middle" fill="#6d6559" font-size="11.5">rotation</text>
+
+          <circle cx="500" cy="60" r="18" fill="#5e1d1d"/>
+          <text x="500" y="35" text-anchor="middle" fill="#241f18" font-weight="700">Iterative</text>
+          <text x="500" y="20" text-anchor="middle" fill="#6d6559" font-size="11.5">cascade</text>
+        </g>
+        <path d="M470 250 C 430 200, 470 120, 500 70" fill="none" stroke="#8c2f2f" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <text x="558" y="315" text-anchor="end" font-size="11" font-style="italic" fill="#a89e88">automation shifts scenarios up &amp; right</text>
+      </svg>
+      </div>
+      <figcaption><b>Figure 4.</b> Positioning by likelihood and impact. Blast radius grows super-linearly under automation, because the marginal cost of affecting one more account approaches zero while the coordination of recovery does not &mdash; the dashed path shows scenarios migrating toward the high-impact, high-likelihood corner.</figcaption>
+    </figure>
+
+    <p>Three factors govern the blast radius in every case: the <strong>number of consumers</strong> of the affected credential (many unregistered and therefore invisible to the platform), the <strong>presence and quality of a reconcile mechanism</strong> that could restore service, and the <strong>retention and visibility of deleted objects</strong>, which determines whether destroyed credentials can be recovered at all.</p>
+  </section>
+
+  <!-- VII -->
+  <section id="controls">
+    <h2 class="sec"><span class="secnum">VII.</span>Recommended Controls</h2>
+    <p>Because the weakness is compositional, no single control is sufficient; the objective is to break the conjunction of coarse authorisation, unvalidated input, and irreversible action at multiple points. We group recommendations into four defensive layers.</p>
+
+    <figure>
+      <div class="figframe">
+      <svg viewBox="0 0 720 210" role="img" aria-label="Four defensive layers">
+        <g>
+          <rect x="10"  y="40" width="168" height="130" rx="3" fill="#f0ece0" stroke="#cfc7b3"/>
+          <rect x="192" y="40" width="168" height="130" rx="3" fill="#e6ecdf" stroke="#c3d0b9"/>
+          <rect x="374" y="40" width="168" height="130" rx="3" fill="#f2e9d6" stroke="#d9c9a4"/>
+          <rect x="556" y="40" width="154" height="130" rx="3" fill="#efdcd7" stroke="#d6b8b0"/>
+
+          <text x="94"  y="30" text-anchor="middle" font-size="12.5" font-weight="700" fill="#42505c">VII.1 Authorisation</text>
+          <text x="276" y="30" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a6b4f">VII.2 Input validation</text>
+          <text x="458" y="30" text-anchor="middle" font-size="12.5" font-weight="700" fill="#9c6a1a">VII.3 Reversibility</text>
+          <text x="633" y="30" text-anchor="middle" font-size="12.5" font-weight="700" fill="#8c2f2f">VII.4 Automation</text>
+
+          <g font-size="11" fill="#3a332a">
+            <text x="24" y="66">Split add vs.</text><text x="24" y="82">rotate rights</text>
+            <text x="24" y="106">Lower default</text><text x="24" y="122">membership tier</text>
+            <text x="24" y="146">Dual control</text><text x="24" y="162">on Prod Change</text>
+
+            <text x="206" y="66">Select from</text><text x="206" y="82">authoritative source</text>
+            <text x="206" y="106">Validate ownership</text><text x="206" y="122">at submission</text>
+            <text x="206" y="146">Approval gate on</text><text x="206" y="162">Prod onboarding</text>
+
+            <text x="388" y="66">Reconcile account</text><text x="388" y="82">per platform</text>
+            <text x="388" y="106">Register all</text><text x="388" y="122">dependencies</text>
+            <text x="388" y="146">Disable "change</text><text x="388" y="162">on add"; retain deletes</text>
+
+            <text x="570" y="66">Agents = distinct</text><text x="570" y="82">principals</text>
+            <text x="570" y="106">Rate-limit bulk</text><text x="570" y="122">operations</text>
+            <text x="570" y="146">Impact check +</text><text x="570" y="162">correlate events</text>
+          </g>
+        </g>
+      </svg>
+      </div>
+      <figcaption><b>Figure 5.</b> Defence in depth. Each layer severs a different link in the causal chain, so no single misconfiguration re-enables the full attack surface.</figcaption>
+    </figure>
+
+    <h3 class="sub">VII.1 &nbsp;Authorisation: Enforce Least Privilege</h3>
+    <ul class="clean">
+      <li>Decompose write membership. Separate the right to <em>add accounts</em> from the right to <em>initiate rotation</em>, granting the latter only to a small, named population.</li>
+      <li>Reduce the default membership tier &mdash; provision most staff with use/retrieve rather than write, elevating only on justified need.</li>
+      <li>Require dual control (four-eyes) for onboarding and for any Change against a Production instance.</li>
+    </ul>
+
+    <h3 class="sub">VII.2 &nbsp;Input Validation: Constrain Onboarding</h3>
+    <ul class="clean">
+      <li>Replace free-text onboarding with selection from an authoritative, reconciled source (CMDB or automated discovery), so only entitled accounts can be added.</li>
+      <li>Validate account name and address against ownership records at submission time, rejecting mismatches.</li>
+      <li>Gate onboarding of Production-instance accounts behind an approval workflow consistent with the RTB/CTB operating rules.</li>
+    </ul>
+
+    <h3 class="sub">VII.3 &nbsp;Reversibility and Safety: Make Rotation Recoverable</h3>
+    <ul class="clean">
+      <li>Configure a reconcile account for every platform so a bad rotation can be restored rather than becoming terminal.</li>
+      <li>Register all consumers as managed dependencies, so rotation propagates to service logons, configs, and API consumers instead of silently breaking them.</li>
+      <li>Disable &ldquo;change on add&rdquo; as a default; separate onboarding (custody) from rotation (action).</li>
+      <li>Retain deleted account objects and their credential history for a defined window, and alert on deletion.</li>
+    </ul>
+
+    <h3 class="sub">VII.4 &nbsp;Automation and AI Governance</h3>
+    <ul class="clean">
+      <li>Treat AI agents and scripts as privileged principals in their own right, with narrowly scoped, separately governed permissions &mdash; never inheriting a human&rsquo;s broad write membership.</li>
+      <li>Impose rate limits and volume thresholds on onboarding and rotation, so bulk actions are throttled and flagged.</li>
+      <li>Require an explicit impact assessment &mdash; an enumeration of dependent consumers &mdash; before any agent-initiated Change, and block where dependencies are unknown.</li>
+      <li>Log and correlate onboarding, rotation, and deletion as linked events, enabling detection of the onboard&ndash;rotate&ndash;delete pattern as a single anomaly.</li>
+    </ul>
+  </section>
+
+  <!-- VIII -->
+  <section id="conclusion">
+    <h2 class="sec"><span class="secnum">VIII.</span>Conclusion</h2>
+    <p>The weakness examined here is easy to dismiss precisely because it hides behind legitimate authorisation and presents, for now, as occasional operational breakage. That comfort is misplaced. The same mechanism that today produces an isolated outage is, under deliberate misuse or automated execution, a credential-takeover and denial-of-service primitive with an impaired recovery path. Two trends &mdash; the delegation of privileged operations to AI agents that amplify uninformed instructions at machine speed, and the scripting of bulk lifecycle operations &mdash; will convert a latent, tolerated risk into a realised one. The corrective measures are neither novel nor exotic: least privilege, validated onboarding, reversible action, and explicit governance of automated principals. What is required is the reframing itself &mdash; to see &ldquo;an accidental password change that broke an application&rdquo; not as user error but as evidence of a structural weakness that organisations should address before, rather than after, its consequences scale.</p>
+  </section>
+
+  <section id="refs">
+    <h2 class="sec">References</h2>
+    <ol class="refs">
+      <li>&ldquo;CyberArk CPM &mdash; Change, Verify &amp; Reconcile, and the Rotation That Broke a Billing App at 2am.&rdquo; <a href="https://ai.techclick.in/blog_cyberark_cpm_credential_rotation">ai.techclick.in/blog_cyberark_cpm_credential_rotation</a></li>
+      <li>CyberArk Community. &ldquo;Onboarded Windows Domain Account Password Rotation Workflow (CPM).&rdquo; <a href="https://community.cyberark.com/s/question/0D5Vy000015quqoKAA/onboarded-windows-domain-account-password-rotation-workflow-cpm">community.cyberark.com</a></li>
+      <li>SecApps Learning. &ldquo;CyberArk CPM Password Management: Complete Guide (Verify, Change &amp; Reconcile Explained).&rdquo; <a href="https://secappslearning.com/post/cyberark-cpm-password-management-complete-guide-verify-change-reconcile-explained">secappslearning.com</a></li>
+    </ol>
+  </section>
+
+  <footer>
+    <span class="orn">&sect; &sect; &sect;</span>
+    <span class="note">The views expressed are the author&rsquo;s own and rely on no employer data.</span><br>
+    IAM Summit &middot; Working Paper on PAM Onboarding Risk &middot; Version 1.0
+  </footer>
+</div>
+
+<script>
+  const bar = document.getElementById('bar');
+  addEventListener('scroll', () => {
+    const h = document.documentElement;
+    const p = h.scrollTop / (h.scrollHeight - h.clientHeight);
+    bar.style.width = (p * 100) + '%';
+  }, {passive:true});
+</script>
+</body>
+</html>
